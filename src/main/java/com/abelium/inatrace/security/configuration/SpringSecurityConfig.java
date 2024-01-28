@@ -27,7 +27,7 @@ import org.springframework.web.cors.CorsConfiguration;
     prePostEnabled = true
 )
 public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
-	
+    
     @Value("${cors.allowed-origins}")
     private List<String> allowedOrigins;
 
@@ -46,9 +46,8 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
-		
-	
-	private static String[] swaggerExceptions = new String[] {
+        
+    private static String[] swaggerExceptions = new String[] {
         "/v2/api-docs",
         "/swagger-resources",
         "/swagger-resources/**",
@@ -56,40 +55,38 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
         "/configuration/security",
         "/swagger-ui.html",
         "/webjars/**"
-	};
+    };
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-		http.cors().and()
-			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+        CorsConfiguration corsConfig = new CorsConfiguration();
+        corsConfig.setAllowedOrigins(allowedOrigins);
+        corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        corsConfig.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        corsConfig.setExposedHeaders(Arrays.asList("Authorization")); // Add the headers you want to expose
+        corsConfig.setAllowCredentials(true); // Set it to true if your frontend sends credentials like cookies
+
+        // Uncomment the line below if you want to allow all origins, headers, and methods by default
+        corsConfig.applyPermitDefaultValues();
+
+        http.cors().configurationSource(request -> corsConfig)
+            .and()
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
             .csrf().disable()
             .formLogin().disable()
             .httpBasic().disable()
             .exceptionHandling().authenticationEntryPoint(new RestAuthenticationEntryPoint()).and()
-        	//.and().requestMatchers().antMatchers("/")
-        	.authorizeRequests()
-        		.antMatchers("/api/public/**", 
-        				"/api/user/login",
-        				"/api/user/refresh_authentication",
-        				"/api/user/register",
-        				"/api/user/request_reset_password",
-        				"/api/user/reset_password",
-        				"/api/user/confirm_email").permitAll()
-        		.antMatchers(swaggerExceptions).permitAll()
-        		.anyRequest().authenticated();		
+            //.and().requestMatchers().antMatchers("/")
+            .authorizeRequests()
+                .antMatchers("/api/public/**", 
+                        "/api/user/login",
+                        "/api/user/refresh_authentication",
+                        "/api/user/register",
+                        "/api/user/request_reset_password",
+                        "/api/user/reset_password",
+                        "/api/user/confirm_email").permitAll()
+                .antMatchers(swaggerExceptions).permitAll()
+                .anyRequest().authenticated();        
         http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        http.cors().configurationSource(request -> {
-            CorsConfiguration corsConfig = new CorsConfiguration();
-            corsConfig.setAllowedOrigins(allowedOrigins);
-            corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-            corsConfig.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
-            corsConfig.setExposedHeaders(Arrays.asList("Authorization")); // Add the headers you want to expose
-            return corsConfig;
-        });
-
-        // http.cors().configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues());
-
     }
-
 }
