@@ -1,5 +1,9 @@
 package com.abelium.inatrace.security.configuration;
 
+import java.util.Arrays;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -12,12 +16,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -27,6 +27,9 @@ import java.util.Arrays;
     prePostEnabled = true
 )
 public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
+	
+    @Value("${cors.allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -37,28 +40,15 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     public TokenAuthenticationFilter tokenAuthenticationFilter() {
         return new TokenAuthenticationFilter();
     }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList("http://isledecoco-app.s3-website-ap-southeast-1.amazonaws.com"));
-        // config.setAllowedOrigins(Arr/ays.asList("http://127.0.0.1:8081"));
-        
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
-        config.setExposedHeaders(Arrays.asList("Authorization")); // Add the headers you want to expose
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
-
+    
     @Bean(BeanIds.AUTHENTICATION_MANAGER)
     @Override
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
-
-    private static String[] swaggerExceptions = new String[] {
+		
+	
+	private static String[] swaggerExceptions = new String[] {
         "/v2/api-docs",
         "/swagger-resources",
         "/swagger-resources/**",
@@ -66,27 +56,40 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
         "/configuration/security",
         "/swagger-ui.html",
         "/webjars/**"
-    };
+	};
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.cors().and()
-            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+		http.cors().and()
+			.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
             .csrf().disable()
             .formLogin().disable()
             .httpBasic().disable()
             .exceptionHandling().authenticationEntryPoint(new RestAuthenticationEntryPoint()).and()
-            .authorizeRequests()
-                .antMatchers("/api/public/**", 
-                        "/api/user/login",
-                        "/api/user/refresh_authentication",
-                        "/api/user/register",
-                        "/api/user/request_reset_password",
-                        "/api/user/reset_password",
-                        "/api/user/confirm_email").permitAll()
-                .antMatchers(swaggerExceptions).permitAll()
-                .anyRequest().authenticated();
-
+        	//.and().requestMatchers().antMatchers("/")
+        	.authorizeRequests()
+        		.antMatchers("/api/public/**", 
+        				"/api/user/login",
+        				"/api/user/refresh_authentication",
+        				"/api/user/register",
+        				"/api/user/request_reset_password",
+        				"/api/user/reset_password",
+        				"/api/user/confirm_email").permitAll()
+        		.antMatchers(swaggerExceptions).permitAll()
+        		.anyRequest().authenticated();		
         http.addFilterBefore(tokenAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        http.cors().configurationSource(request -> {
+            CorsConfiguration corsConfig = new CorsConfiguration();
+            corsConfig.setAllowedOrigins(allowedOrigins);
+            corsConfig.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+            corsConfig.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+            corsConfig.setExposedHeaders(Arrays.asList("Authorization")); // Add the headers you want to expose
+            return corsConfig;
+        });
+
+        // http.cors().configurationSource(request -> new CorsConfiguration().applyPermitDefaultValues());
+
     }
+
 }
