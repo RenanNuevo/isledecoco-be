@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  inatrace-mysql:
+    image: mysql:8.0.26
+    container_name: inatrace-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DATABASE_NAME}
+      - MYSQL_USER=${DATASOURCE_USERNAME}
+      - MYSQL_PASSWORD=${DATASOURCE_PASSWORD}
+    volumes:
+      - inatrace_mysql_volume:/var/lib/mysql
+    networks:
+      - backend
+    restart: always
+
+  # inatrace-backend:
+  #   image: ${IMAGE_NAME}:${TAG}
+  #   container_name: inatrace-be
+  #   environment:
+  #     - INATRACE_DATABASE_NAME=${DATABASE_NAME}
+  #     - INATRACE_DATABASE_HOSTNAME=inatrace-mysql
+  #     - SPRING_DATASOURCE_USERNAME=${DATASOURCE_USERNAME}
+  #     - SPRING_DATASOURCE_PASSWORD=${DATASOURCE_PASSWORD}
+  #     - INATRACE_FILESTORAGE_ROOT=${FILE_STORAGE_ROOT}
+  #     - INATRACE_IMPORT_PATH=${IMPORT_PATH}
+  #     - INATRACE_DOCUMENTS_ROOT=${DOCUMENTS_ROOT}
+  #     - INATRACE_REQUESTLOG_TOKEN=${REQUESTLOG_TOKEN}
+  #     - INATRACE_EXCHANGERATE_APIKEY=${EXCHANGERATE_APIKEY}
+  #   volumes:
+  #     - inatrace_mysql_volume:/opt/inatrace/file_storage
+  #     - inatrace_mysql_volume:/opt/inatrace/import/
+  #     - inatrace_mysql_volume:/opt/inatrace/documents/
+  #   networks:
+  #     - backend
+  #   depends_on:
+  #     - inatrace-mysql
+  #   ports:
+  #     - "8080:8080"
+  #   restart: always
+
+networks:
+  backend:
+    name: inatrace-backend-network
+
+volumes:
+  inatrace_mysql_volume:
